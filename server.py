@@ -1,24 +1,33 @@
 # -*- coding: utf-8 -*-
 
-#ONE SERVER
-#by m1shkfr3d3
+# ONE SERVER
+# by m1shkfr3d3
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 from mimetypes import init as mimeinit, types_map as getmime
-from os.path import join
-
-
+from os.path import join, isfile
 
 
 class WebFiler():
-    def gettype(self,path):
+    def gettype(self, path):
         path = path[1:]
         mimeinit()
-        filetype = path[path.rfind('.'):path.rfind("?")]
+        if '?' in path:
+            filetype = path[path.rfind('.'):path.rfind("?")]
+        else:
+            filetype = path[path.rfind('.'):]
         if filetype == '.oscript' or filetype == '':
             filetype = '.html'
-        return getmime[filetype]
+        try:
+            return getmime[filetype]
+        except KeyError:
+            return getmime['.html']
+    def status(self,path):
+        if isfile(path):
+            return 200
+        else:
+            return 404
 
     def get(self, path):
         # self.path = path
@@ -31,31 +40,36 @@ class WebFiler():
             oscript = osm.getosh()
             a = oscript(arg, filename)
             return a.encode()
-        try:
-            with open(join('html', path),encoding='utf8') as f:
-               return f.read().encode()
-        except FileNotFoundError:
-            notfoundpage()
-            
-def notfoundpage():
-    with open(join('html', 'serverspage', '404.html'),encoding='utf8') as f:
+        if isfile(path):
+            with open(join('html', path), encoding='utf8') as f:
                 return f.read().encode()
+        else:
+            return notfoundpage()
+
+
+def notfoundpage():
+    with open(join('html', 'serverspage', '404.html'), encoding='utf8') as f:
+        return f.read().encode()
+
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
         filer = WebFiler()
-        self.send_response(200)
+        self.send_response(filer.status(self.path))
         self.send_header("Content-type", filer.gettype(self.path))
         self.end_headers()
         self.wfile.write(filer.get(self.path))
 
+
 class oscriptmanager():
     def setosh(self, oscript) -> None:
         self.oscript = oscript
+
     def getosh(self):
         return self.oscript
 
-def run(oscript,hostName = "0.0.0.0",serverPort = 8080):
+
+def run(oscript, hostName="0.0.0.0", serverPort=8080):
     global osm
     osm = oscriptmanager()
     osm.setosh(oscript)
@@ -76,6 +90,8 @@ def run(oscript,hostName = "0.0.0.0",serverPort = 8080):
 
     webServer.server_close()
     print("Server stopped.")
+
+
 if __name__ == "__main__":
     print("""
     Oh no!

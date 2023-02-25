@@ -23,8 +23,12 @@ class WebFiler():
             return getmime[filetype]
         except KeyError:
             return getmime['.html']
-    def status(self,path):
-        if isfile(path):
+
+    def status(self, path):
+        path = path[1:]
+        if path == '':
+            path = 'index.html'
+        if isfile(join('html', path)):
             return 200
         else:
             return 404
@@ -40,7 +44,7 @@ class WebFiler():
             oscript = osm.getosh()
             a = oscript(arg, filename)
             return a.encode()
-        if isfile(path):
+        if isfile(join('html', path)):
             with open(join('html', path), encoding='utf8') as f:
                 return f.read().encode()
         else:

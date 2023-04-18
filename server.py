@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 from mimetypes import init as mimeinit, types_map as getmime
 from os.path import join, isfile
+from urllib.parse import unquote_plus as unquoteurl
 
 
 class WebFiler():
@@ -36,24 +37,30 @@ class WebFiler():
     def get(self, path):
         # self.path = path
         path = path[1:]
-        arg = path[path.rfind('=') + 1:]
+        arg = unquoteurl(path[path.rfind('=') + 1:])
         if path == '':
             path = 'index.html'
         if '.oscript' in path:
             filename = path[path.rfind('/')+1:path.rfind("?")]
             oscript = osm.getosh()
             a = oscript(arg, filename)
-            return a.encode()
+            if len(a) > 0:
+                return a.encode()
+            else:
+                return notfoundpage(True)
         if isfile(join('html', path)):
             with open(join('html', path), encoding='utf8') as f:
                 return f.read().encode()
         else:
-            return notfoundpage()
+            return notfoundpage(True)
 
 
-def notfoundpage():
+def notfoundpage(encoded=False):
     with open(join('html', 'serverspage', '404.html'), encoding='utf8') as f:
-        return f.read().encode()
+        if encoded:
+            return f.read().encode()
+        else:
+            return f.read()
 
 
 class MyServer(BaseHTTPRequestHandler):
@@ -78,7 +85,8 @@ def run(oscript, hostName="0.0.0.0", serverPort=8080):
     osm = oscriptmanager()
     osm.setosh(oscript)
     webServer = HTTPServer((hostName, serverPort), MyServer)
-    print("""  _____                 _                                 
+    print("""
+  _____                 _                                 
  / ___ \               | |                                
 | |   | |____   ____    \ \   ____  ____ _   _ ____  ____ 
 | |   | |  _ \ / _  )    \ \ / _  )/ ___) | | / _  )/ ___)
@@ -99,6 +107,6 @@ def run(oscript, hostName="0.0.0.0", serverPort=8080):
 if __name__ == "__main__":
     print("""
     Oh no!
-    You now trying to start server wihtout runner script!
+    You now trying to start server without runner script!
     (by defalut it is main.py)
     """)
